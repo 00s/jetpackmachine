@@ -9,9 +9,24 @@
 	<link rel="stylesheet" href="css/main.scss">
 </head>
 <body>
+	<br>
 	<button>spin</button>
-	<h1></h1>
-
+	<hr>
+	<h1 id="betline"> PULL THE LEVER</h1>
+	<hr>
+	<h2 id="coins">Coins: <strong>0</strong></h2>
+	<h2 id="tokens">Tokens: <strong>0</strong></h2>
+	<hr>
+	
+	<ul id="player-options">
+		<li id="buy-token" ><a href="#">buy token</a></li>
+		<li id="cash-in"><a href="#">cash in</a></li>
+	</ul>
+	<hr>
+	<form name="money">
+		<input type="number" name="coin-slot">
+		<input type="submit" value="Insert">
+	</form>
 	<!-- js reference -->
 	<script src="js/jquery-2.1.1.min.js"></script>
 	<script src="js/bimap.js"></script>
