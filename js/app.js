@@ -6,13 +6,16 @@ var SYMBOL = Object.freeze({COIN_JACKPOT: 	"Coin Jackpot",
 							SMALL_BLAST: 	"Small Blast", 
 							COIN_BONUS: 	"Coin Bonus", 
 							EXTRA_SPINS: 	"Extra Spins", 
-							SECOND_CHANCE: 	"Second Chance", 
+							DOUBLE_TOKENS: 	"Double Tokens", 
 							DOUBLE_COINS: 	"Double Coins", 
 							HEAD_START: 	"Head Start"});
 /* global variables */
 var map = new BiMap;
-var coins = 0;
+var coins = 1000;
 var tokens = 0;
+var actualReels = "PULL THE LEVER";
+/* constants */
+const TOKEN_VALUE = 50;
 /* initialize bimap with values in descending order of importance. */
 loadMap( map, SYMBOL.COIN_JACKPOT	, 0, 0);
 loadMap( map, SYMBOL.COIN_PRIZE		, 1, 2); 	
@@ -23,18 +26,42 @@ loadMap( map, SYMBOL.COIN_BONUS		, 21, 30);
 loadMap( map, SYMBOL.DOUBLE_COINS	, 31, 42);
 loadMap( map, SYMBOL.HEAD_START		, 43, 56);
 loadMap( map, SYMBOL.EXTRA_SPINS 	, 57, 72);
-loadMap( map, SYMBOL.SECOND_CHANCE 	, 73, 90);
+loadMap( map, SYMBOL.DOUBLE_TOKENS 	, 73, 90);
+
+/* update DOM content */
+function updateScreen(){
+	$("h2#coins strong").text(coins);
+	$("h2#tokens strong").text(tokens);
+	$("h1#betline").text(actualReels);
+}
+
+/* Check if player have enough tokens */
+function checkTokens(){
+	if(tokens>0){
+		tokens--;
+		return true;
+		console.log("token consumed. The player have " + coins + " coins and " + tokens + " tokens.");
+	}else{
+		alert("You don't have tokens.");
+	}
+}
+
+/* return 90% of token value if player wants to cash the token in */
+function cashIn(){
+	if(tokens>0){
+		tokens--;
+		coins += (TOKEN_VALUE*0.9);
+		console.log("token cashed in. The player have " + coins + " coins and " + tokens + " tokens.")
+	}else{
+		alert("You don't have tokens to be cashed in.");
+	}
+}
 
 /* return a valid reel position */
 function spin(){
 	var virtualReel = Math.floor(Math.random() * 999999999 + 1); // generate number up to 1 Bi
 	virtualReel %= 90; // reduce the options to 90
-	return getRealReel(virtualReel);
-}
-
-/* return the key given the value */
-function getRealReel(virtualReel){
-	return map.val(virtualReel);
+	return map.val(virtualReel); // return the key given the value 
 }
 
 /* auxiliar function to load BiMap */
@@ -52,7 +79,19 @@ function betline(){
 	for(i = 0; i < 3; i++){
 		reels.push(spin());
 	}
-	return reels;
+	actualReels = reels + "";
+}
+
+/* add coins */
+function buyToken(){
+	if(coins >= TOKEN_VALUE){
+		coins -= TOKEN_VALUE;
+		tokens++;
+		console.log("Token bought. The player have "+ tokens +" tokens");
+	}
+	else{
+		confirm("You don't have enough money. Would you like to play again?");
+	}
 }
 
 /* Calculate prize acording to symbol combination */
@@ -86,14 +125,32 @@ function calculatePrize(symbol){
 		case SYMBOL.EXTRA_SPINS:
 			tokens += 3;
 			break;
-		default: // equivalent to SYMBOL.SECOND_CHANCE:
-			tokens += 1;
+		default: // equivalent to SYMBOL.DOUBLE_TOKENS:
+			tokens += tokens;
 			break;
 	}
 	coins += prize;
 }
 
-$('button').click(function(){
-	$('h1').text(betline());
-});
+/** slot machine controls **/
 
+// LEVER
+$(function (){
+	updateScreen();
+	$('button').click(function(){
+		if(checkTokens()){
+			betline();
+		}
+		updateScreen();
+	});
+	$('#buy-token').click(function(){
+		buyToken();
+		updateScreen();
+	});
+	$('#cash-in').click(function(){
+		cashIn();
+		updateScreen();
+	});
+	
+
+});
