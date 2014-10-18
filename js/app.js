@@ -13,7 +13,7 @@ var SYMBOL = Object.freeze({COIN_JACKPOT: 	"Coin Jackpot",
 var map = new BiMap;
 var coins = 1000;
 var tokens = 0;
-var actualReels = betline;
+var actualReels = "Coin Jackpot,Coin Jackpot,Coin Jackpot";
 var lastPrize = "";
 var displayMessage = "PULL THE LEVER";
 /* constants */
@@ -29,15 +29,15 @@ function loadBiMap(map, set){
 	var firstRange = end - start + 1; // used just for comparative pouposes
 	var range;
 	// iterate over each list element for seting values dinamically
-	$.each(set, function(key){
+	$.each(set, function(key, value){
 		range = end - start + 1;
 		console.log("start: " + start+ "    \tend: " + end + "  \t\t| range: " + range);
-		loadMap(map, key, start, end);
+		loadMap(map, value, start, end);
 		start = end + 1;
 		end = Math.floor(range * 1.5 + end);
 	});
-	console.log((firstRange*100/(start-1)) + "% of chance for the first symbol");
-	console.log(Math.round(range*100/(start-1)) + "% of chance for the last symbol");
+	console.log((firstRange*100/(start-1)) + "% chance for the first symbol");
+	console.log(Math.round(range*100/(start-1)) + "% chance for the last symbol");
 }
 
 /* update DOM content */
@@ -70,7 +70,7 @@ function colectToken(){
 	}
 }
 
-/* add coins */
+/* token purchase */
 function buyToken(){
 	if(coins >= TOKEN_VALUE){
 		coins -= TOKEN_VALUE;
@@ -97,7 +97,7 @@ function cashIn(){
 	}
 }
 
-/* auxiliar function to load BiMap */
+/* auxiliar function for loading BiMap */
 function loadMap(map, key, start, end){
 	var nums = [];
 	for(i = start; i <=end; i++){
@@ -156,14 +156,14 @@ function calculatePrize(symbol){
 			tokens += 3;
 			lastPrize = "3 TOKENS"
 			break;
-		default: // equivalent to SYMBOL.DOUBLE_TOKENS:
+		case SYMBOL.DOUBLE_TOKENS:
 			lastPrize = "ANOTHER "+ tokens +" TOKENS"
 			tokens += tokens;
 			break;
 	}
-
-	if(prize >0){
-		lastPrize = prize+" COINS";
+	// compose lastPrize message for coins prize
+	if(prize >0 && prize != 1000){
+		lastPrize = prize + " COINS";
 	}
 	coins += prize;
 }
@@ -172,7 +172,7 @@ function checkReels(){
 	if(actualReels[0] == actualReels[1] && actualReels[1] == actualReels[2]){
 		calculatePrize(actualReels[0]);
 		displayMessage = "YOU WON " + lastPrize +".";
-		console.log("Player won with " + actualReels[0] + " combination.");
+		console.log("Player won "+ lastPrize + " with " + actualReels[0] + " combination.");
 	}else{
 		displayMessage = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
 		console.log("Player lost.");
@@ -187,7 +187,7 @@ function headStartPrize(){
 /** slot machine interaction **/
 $(function (){
 	loadBiMap(map, SYMBOL);
-	console.log("Waiting for player moves. symbols: " +SYMBOL.size);
+	console.log("Waiting for player moves...");
 	updateScreen();
 	$('button').click(function(){
 		if(colectToken()){
