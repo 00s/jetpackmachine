@@ -175,7 +175,7 @@ function checkReels(){
 		console.log("Player won "+ lastPrize + " with " + actualReels[0] + " combination.");
 	}else{
 		displayMessage = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
-		console.log("Player lost.");
+		console.log("Player lost."+ actualReels[0]);
 	}
 }
 
