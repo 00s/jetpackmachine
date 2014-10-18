@@ -5,37 +5,47 @@ var SYMBOL = Object.freeze({COIN_JACKPOT: 	"Coin Jackpot",
 							BIG_BLAST: 		"Big Blast", 
 							SMALL_BLAST: 	"Small Blast", 
 							COIN_BONUS: 	"Coin Bonus", 
-							EXTRA_SPINS: 	"Extra Spins", 
-							DOUBLE_TOKENS: 	"Double Tokens", 
 							DOUBLE_COINS: 	"Double Coins", 
-							HEAD_START: 	"Head Start"});
+							HEAD_START: 	"Head Start",
+							EXTRA_SPINS: 	"Extra Spins", 
+							DOUBLE_TOKENS: 	"Double Tokens"}); 
 /* global variables */
 var map = new BiMap;
 var coins = 1000;
 var tokens = 0;
-var actualReels = "PULL THE LEVER";
+var actualReels = betline;
 var lastPrize = "";
-var spinResult = "";
+var displayMessage = "PULL THE LEVER";
 /* constants */
 const TOKEN_VALUE = 50;
-/* initialize bimap with values in descending order of importance. */
-loadMap( map, SYMBOL.COIN_JACKPOT	, 0, 0);
-loadMap( map, SYMBOL.COIN_PRIZE		, 1, 2); 	
-loadMap( map, SYMBOL.ATOM_BLAST		, 3, 6);	
-loadMap( map, SYMBOL.BIG_BLAST		, 7, 12);	
-loadMap( map, SYMBOL.SMALL_BLAST	, 13, 20);
-loadMap( map, SYMBOL.COIN_BONUS		, 21, 30);
-loadMap( map, SYMBOL.DOUBLE_COINS	, 31, 42);
-loadMap( map, SYMBOL.HEAD_START		, 43, 56);
-loadMap( map, SYMBOL.EXTRA_SPINS 	, 57, 72);
-loadMap( map, SYMBOL.DOUBLE_TOKENS 	, 73, 90);
+
+/* auxiliar function to initialize bimap distributing weighted values for each key.
+ * first key element of the list has always less associated values than the later ones.
+ * console.log demonstrates proportions
+ */
+function loadBiMap(map, set){
+	var start = 0;
+	var end = 1;
+	var firstRange = end - start + 1; // used just for comparative pouposes
+	var range;
+	// iterate over each list element for seting values dinamically
+	$.each(set, function(key){
+		range = end - start + 1;
+		console.log("start: " + start+ "    \tend: " + end + "  \t\t| range: " + range);
+		loadMap(map, key, start, end);
+		start = end + 1;
+		end = Math.floor(range * 1.5 + end);
+	});
+	console.log((firstRange*100/(start-1)) + "% of chance for the first symbol");
+	console.log(Math.round(range*100/(start-1)) + "% of chance for the last symbol");
+}
 
 /* update DOM content */
 function updateScreen(){
 	$("h2#coins strong").text(coins);
 	$("h2#tokens strong").text(tokens);
 	$("h1#betline").text(actualReels);
-	$("#spin-result").text(spinResult);
+	$("#display").text(displayMessage);
 }
 
 /* auxiliar function used when player have no more options to play */
@@ -50,10 +60,11 @@ function cantPlay(){
 function colectToken(){
 	if(tokens>0){
 		tokens--;
-		console.log("token colected. The player have " + coins + " coins and " + tokens + " tokens.");
+		console.log("token colected. The player have " + coins + " Coins and " + tokens + " Tokens.");
 		return true;
 	}else if(coins > TOKEN_VALUE){
 		alert("You dont have any tokens, but you can buy some.")
+		console.log("Player tried to pull the lever without insert any tokens. Alert message was shown.");
 	}else{
 		cantPlay();
 	}
@@ -64,7 +75,7 @@ function buyToken(){
 	if(coins >= TOKEN_VALUE){
 		coins -= TOKEN_VALUE;
 		tokens++;
-		console.log("Token bought. The player have "+ tokens +" tokens");
+		console.log("Token bought. The player have " + tokens + " tokens");
 	}
 	else if(tokens > 0){
 		alert("You don't have enough money, but you still have tokens.");
@@ -82,15 +93,8 @@ function cashIn(){
 		console.log("token cashed in. The player have " + coins + " coins and " + tokens + " tokens.")
 	}else{
 		alert("You don't have tokens to be cashed in.");
+		console.log("Player tried to cashe a token in, but he doesn't have any. Alert message was shown.");
 	}
-}
-
-
-/* return a valid reel position */
-function spin(){
-	var virtualReel = Math.floor(Math.random() * 999999999 + 1); // generate number up to 1 Bi
-	virtualReel %= 90; // reduce the options to 90
-	return map.val(virtualReel); // return the key given the value 
 }
 
 /* auxiliar function to load BiMap */
@@ -102,14 +106,19 @@ function loadMap(map, key, start, end){
 	map.push(key, nums);
 }
 
+/* return a valid reel position */
+function spin(){
+	var virtualReel = Math.floor(Math.random() * 999999999 + 1); // generate number up to 1 Bi
+	virtualReel %= 90; // reduce the options to 90
+	return map.val(virtualReel); // return the key given the value 
+}
 /* return a betline result */
 function betline(){
 	var reels = [];
 	for(i = 0; i < 3; i++){
 		reels.push(spin());
 	}
-	actualReels = reels + "";
-	console.log("betline: " + actualReels);
+	return reels;
 }
 
 
@@ -123,61 +132,67 @@ function calculatePrize(symbol){
 			break;
 		case SYMBOL.COIN_PRIZE:
 			prize = 500;
-			lastPrize = "500 COINS"
 			break;
 		case SYMBOL.ATOM_BLAST:
 			prize = 385;
-			lastPrize = "385 COINS"
 			break;
 		case SYMBOL.BIG_BLAST:
 			prize = 260;
-			lastPrize = "260 COINS"
 			break;
 		case SYMBOL.SMALL_BLAST:
 			prize = 160;
-			lastPrize = "160 COINS"
 			break;
 		case SYMBOL.COIN_BONUS:
 			prize = 100;
-			lastPrize = "100 COINS"
 			break;
 		case SYMBOL.DOUBLE_COINS:
+			lastPrize = "ANOTHER " + coins + " COINS"
 			coins += coins;
-			lastPrize = "ANOTHER" + coins + " COINS"
 			break;
 		case SYMBOL.HEAD_START:
-			// TODO function for headstart
-			lastPrize = "TODO HEAD_START PRIZE"
+			prize = headStartPrize();
 			break;
 		case SYMBOL.EXTRA_SPINS:
 			tokens += 3;
 			lastPrize = "3 TOKENS"
 			break;
 		default: // equivalent to SYMBOL.DOUBLE_TOKENS:
+			lastPrize = "ANOTHER "+ tokens +" TOKENS"
 			tokens += tokens;
-			lastPrize = "ANOTHER"+ tokens +" TOKENS"
 			break;
+	}
+
+	if(prize >0){
+		lastPrize = prize+" COINS";
 	}
 	coins += prize;
 }
 
 function checkReels(){
-	if(actualReels[0] === actualReels[1] && actualReels[1] === actualReels[2]){
+	if(actualReels[0] == actualReels[1] && actualReels[1] == actualReels[2]){
 		calculatePrize(actualReels[0]);
-		spinResult = "YOU WON " + lastPrize +".";
-		console.log("Player won with triple " + actualReels[0] + "combination.");
+		displayMessage = "YOU WON " + lastPrize +".";
+		console.log("Player won with " + actualReels[0] + " combination.");
 	}else{
-		spinResult = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
+		displayMessage = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
 		console.log("Player lost.");
 	}
 }
 
+/* generate a random number between 50 and 150 for the HEAD_START prize */
+function headStartPrize(){
+	return Math.floor(Math.random() * 100 + 50);
+}
+
 /** slot machine interaction **/
 $(function (){
+	loadBiMap(map, SYMBOL);
+	console.log("Waiting for player moves. symbols: " +SYMBOL.size);
 	updateScreen();
 	$('button').click(function(){
 		if(colectToken()){
-			betline();
+			actualReels = betline();
+			console.log("betline:\n 1 - " + actualReels[0]+ "\n 2 - "+ actualReels[1] +"\n 3 - "+ actualReels[2]);
 			checkReels();
 		}
 		updateScreen();
@@ -190,6 +205,4 @@ $(function (){
 		cashIn();
 		updateScreen();
 	});
-	
-
 });
