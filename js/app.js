@@ -14,6 +14,8 @@ var map = new BiMap;
 var coins = 1000;
 var tokens = 0;
 var actualReels = "PULL THE LEVER";
+var lastPrize = "";
+var spinResult = "";
 /* constants */
 const TOKEN_VALUE = 50;
 /* initialize bimap with values in descending order of importance. */
@@ -33,16 +35,42 @@ function updateScreen(){
 	$("h2#coins strong").text(coins);
 	$("h2#tokens strong").text(tokens);
 	$("h1#betline").text(actualReels);
+	$("#spin-result").text(spinResult);
 }
 
-/* Check if player have enough tokens */
-function checkTokens(){
+/* auxiliar function used when player have no more options to play */
+function cantPlay(){
+	if(confirm("You have neighter money nor tokens.\nWould you like to play again?")){
+		window.location.reload(true);
+		console.log("Game restarted");
+	}
+}
+
+/* Check if player have enough tokens and colect one */
+function colectToken(){
 	if(tokens>0){
 		tokens--;
+		console.log("token colected. The player have " + coins + " coins and " + tokens + " tokens.");
 		return true;
-		console.log("token consumed. The player have " + coins + " coins and " + tokens + " tokens.");
+	}else if(coins > TOKEN_VALUE){
+		alert("You dont have any tokens, but you can buy some.")
 	}else{
-		alert("You don't have tokens.");
+		cantPlay();
+	}
+}
+
+/* add coins */
+function buyToken(){
+	if(coins >= TOKEN_VALUE){
+		coins -= TOKEN_VALUE;
+		tokens++;
+		console.log("Token bought. The player have "+ tokens +" tokens");
+	}
+	else if(tokens > 0){
+		alert("You don't have enough money, but you still have tokens.");
+		console.log("Player doesn't have money, but still have tokens.");
+	}else{
+		cantPlay();
 	}
 }
 
@@ -56,6 +84,7 @@ function cashIn(){
 		alert("You don't have tokens to be cashed in.");
 	}
 }
+
 
 /* return a valid reel position */
 function spin(){
@@ -80,19 +109,9 @@ function betline(){
 		reels.push(spin());
 	}
 	actualReels = reels + "";
+	console.log("betline: " + actualReels);
 }
 
-/* add coins */
-function buyToken(){
-	if(coins >= TOKEN_VALUE){
-		coins -= TOKEN_VALUE;
-		tokens++;
-		console.log("Token bought. The player have "+ tokens +" tokens");
-	}
-	else{
-		confirm("You don't have enough money. Would you like to play again?");
-	}
-}
 
 /* Calculate prize acording to symbol combination */
 function calculatePrize(symbol){
@@ -100,46 +119,66 @@ function calculatePrize(symbol){
 	switch(symbol){
 		case SYMBOL.COIN_JACKPOT:
 			prize = 1000;
+			lastPrize = "$$$ THE JACKPOT $$$"
 			break;
 		case SYMBOL.COIN_PRIZE:
 			prize = 500;
+			lastPrize = "500 COINS"
 			break;
 		case SYMBOL.ATOM_BLAST:
 			prize = 385;
+			lastPrize = "385 COINS"
 			break;
 		case SYMBOL.BIG_BLAST:
 			prize = 260;
+			lastPrize = "260 COINS"
 			break;
 		case SYMBOL.SMALL_BLAST:
 			prize = 160;
+			lastPrize = "160 COINS"
 			break;
 		case SYMBOL.COIN_BONUS:
 			prize = 100;
+			lastPrize = "100 COINS"
 			break;
 		case SYMBOL.DOUBLE_COINS:
 			coins += coins;
+			lastPrize = "ANOTHER" + coins + " COINS"
 			break;
 		case SYMBOL.HEAD_START:
 			// TODO function for headstart
+			lastPrize = "TODO HEAD_START PRIZE"
 			break;
 		case SYMBOL.EXTRA_SPINS:
 			tokens += 3;
+			lastPrize = "3 TOKENS"
 			break;
 		default: // equivalent to SYMBOL.DOUBLE_TOKENS:
 			tokens += tokens;
+			lastPrize = "ANOTHER"+ tokens +" TOKENS"
 			break;
 	}
 	coins += prize;
 }
 
-/** slot machine controls **/
+function checkReels(){
+	if(actualReels[0] === actualReels[1] && actualReels[1] === actualReels[2]){
+		calculatePrize(actualReels[0]);
+		spinResult = "YOU WON " + lastPrize +".";
+		console.log("Player won with triple " + actualReels[0] + "combination.");
+	}else{
+		spinResult = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
+		console.log("Player lost.");
+	}
+}
 
-// LEVER
+/** slot machine interaction **/
 $(function (){
 	updateScreen();
 	$('button').click(function(){
-		if(checkTokens()){
+		if(colectToken()){
 			betline();
+			checkReels();
 		}
 		updateScreen();
 	});
