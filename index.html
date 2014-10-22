@@ -6,50 +6,11 @@
 
 	<!-- css reference -->
 	<link rel="stylesheet" href="css/reset.css">
-	<link rel="stylesheet" href="css/main.scss">
-
-	<!-- js special reference for createjs proper work -->
-	<script src="http://code.createjs.com/createjs-2013.12.12.min.js"></script>
-	<script>
-		var stage;
-		var queue;
-		function init(){ 
-			stage = new createjs.Stage("slotmachine");
-
-			queue = new createjs.LoadQueue(false);
-			queue.installPlugin(createjs.Sound);
-			queue.addEventListener("Complete". handleComplete);
-			queue.loadManifest([{id:"pop", src:"assets/sound/pop.wav"}]);
-
-		}
-	
-		function handleComplete(event){
-			var ball = new createjs.Shape();
-			ball.addEventListener("click", handleClick);
-
-			ball.graphics.beginFill("#000000").drawCircle(0,0,40);
-			ball.x = 50;
-			ball.y = 200;
-
-			createjs.Tween.get(ball, {loop:true}).to({x:450}, 3000).to({x:50}, 3000);
-			createjs.Ticker.addEventListener("tick", tick);
-
-			stage.addChild(ball);
-		}
-
-		function handleClick(event){
-			createjs.Sound.play("pop");
-		}
-
-		function tick(event){
-			stage.update();
-		}	
-
-	</script>
+	<link rel="stylesheet" href="css/main.css">
 </head>
 <body onload="init()">
 	<!-- Canvas -->
-	<canvas id="slotmachine" width="600" height="400">
+	<canvas id="slotmachine" width="240" height="80">
 		<!-- alternative content for canvas  -->
 		Something went wrong.
 	</canvas>
@@ -79,5 +40,7 @@
 	<script src="js/jquery-2.1.1.min.js"></script>
 	<script src="js/bimap.js"></script>
 	<script src="js/app.js" ></script>
+	<script src="http://code.createjs.com/createjs-2013.12.12.min.js"></script>
+	<script src="js/game.js"></script>
 </body>
 </html>
