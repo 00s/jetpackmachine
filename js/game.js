@@ -31,15 +31,15 @@ var REEL_PADDING 	= 50;
 var ACC = 0.2; // acceleration
 var COLOURS = ["rgba(205,0,0,1)","rgba(0,205,0,1)","rgba(0,0,205,1)"]; // colour reference for buttons
 /* enumeration for SYMBOL POSITIONS (freeze option prevent keys to be modified)*/
-var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING, 
-								COIN_JACKPOT:	-99 +REEL_PADDING, 
-								BIG_BLAST: 		-200+REEL_PADDING, 
+var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING,
+								COIN_JACKPOT:	-99 +REEL_PADDING,
+								BIG_BLAST: 		-200+REEL_PADDING,
 								DOUBLE_TOKENS: 	-300+REEL_PADDING,
-								DOUBLE_COINS: 	-395+REEL_PADDING, 
-								COIN_PRIZE: 	-485+REEL_PADDING, 
-								SMALL_BLAST: 	-585+REEL_PADDING, 
-								ATOM_BLAST: 	-685+REEL_PADDING, 
-								EXTRA_SPINS: 	-786+REEL_PADDING, 
+								DOUBLE_COINS: 	-395+REEL_PADDING,
+								COIN_PRIZE: 	-485+REEL_PADDING,
+								SMALL_BLAST: 	-585+REEL_PADDING,
+								ATOM_BLAST: 	-685+REEL_PADDING,
+								EXTRA_SPINS: 	-786+REEL_PADDING,
 								HEAD_START: 	-890+REEL_PADDING});
 // config canvas
 function init(){ 
@@ -67,6 +67,7 @@ function init(){
     msgCoinAmount = new createjs.Text();
     msgTokenAmount = new createjs.Text();
 
+
     configText(btBuyToken, '26px Squada One', 'yellow', "BUY TOKEN", 20, 180, true);
     configText(btCashIn, '26px Squada One', 'yellow', "CASH IN", 200, 180, true);
     configText(msgDisplayMessage, '46px Squada One', 'red', "", 40, 210, true);
@@ -75,7 +76,7 @@ function init(){
 
     //mask for display
 	var displayMask = new createjs.Shape();
-	displayMask.graphics.beginStroke('green').setStrokeStyle(3).rect(-1, 210, 294, 50);
+	displayMask.graphics.beginStroke('green').setStrokeStyle(3).rect(6, 210, 280, 47);
 	msgDisplayMessage.mask = displayMask;
 	stage.addChild(displayMask);
 
@@ -94,7 +95,7 @@ function init(){
 
     redLever.on("pressmove", function(event){
     	// currentTarget will be the container that the event listener was added to:
-    	if(event.stageY < 100){
+    	if(event.stageY < 100 && event.stageY > 30){
 			event.currentTarget.y = event.stageY;
     	}
 		// make sure to redraw the stage to show the change:
@@ -112,6 +113,10 @@ function init(){
 
 	loadBiMap(map, POSITION);
 	console.log("Waiting for player moves...");
+	console.log("maplenght"+map.size);
+	for(var i=0;i< map.size;i++){
+		console.log("."+map[i]);
+	}
 }
 function over(event){
 	event.target.color = 'red';
@@ -163,10 +168,6 @@ function spinReel(reel){
 		reel.y += reel.speed;
 		// update reel relativeDistance
 		reel.relativeDistance -= reel.speed;
-		// log
-		//console.log(" y position 		: "+ reel.y);
-		//console.log(" speed 			: "+ reel.speed);
-		//console.log("relativeDistance 	: "+ reel.relativeDistance); 
 	}else{
 		reel.y = reel.nextStop; //correct reel position
 		reel.relativeDistance = 0; // reset property;
@@ -373,14 +374,16 @@ function mapValuesToKey(map, key, start, end){
 
 /* return a valid reel position */
 function reelPosition(){
-	var virtualReel = Math.floor(Math.random() * 90); // generate number up to 90
+	var virtualReel = Math.floor(Math.random() * 1000000000); // generate number up to 1bi
+	virtualReel %= 90; // reduce number up to 90
 	return map.val(virtualReel); // return the key given the value 
 }
 /* return a betline result */
 function betline(){
 	var reelSet = [];
 	for(i = 0; i < 3; i++){
-		reelSet.push(reelPosition());
+		var rand = reelPosition();
+		reelSet.push(rand);
 	}
 	return reelSet;
 }
