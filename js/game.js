@@ -45,6 +45,8 @@ var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING,
 function init(){ 
 	// define canvas as stage
 	stage = new createjs.Stage("slotmachine");
+	// enable touch interaction on supported display
+	if (createjs.Touch.isSupported()) { createjs.Touch.enable(stage); }
 	// reels setup
 	initializeReels(reelsCanvas, NUMBER_OF_REELS);
 	// ticker setup
