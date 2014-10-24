@@ -4,16 +4,23 @@ var map = new BiMap;
 // Player belongings
 var coins = 1000;
 var tokens = 1;
-
-var actualReels = ["z","j","z"]; // actual raffled reels // placeholder
-var lastReels	= ["z","j","z"]; // last raffled reels // used for flow control
+// colections
+var actualReels = ["x","y","z"]; // actual raffled reels // placeholder
+var lastReels	= ["x","y","z"]; // last raffled reels // used for flow control
 var reelsCanvas	= []; // set of objects representing the reels on Canvas
 var buttons 	= [];
-
+// butons
+var btBuyToken;
+var btCashIn;
+// LEVER
+var lever;
+// messages
+var msgDisplayMessage;
+var msgCoinAmount;
+var msgTokenAmount;
+// strings ref
 var lastPrize = "";
 var displayMessage = "PULL THE LEVER";
-
-
 /* constants */
 var TOKEN_VALUE 	= 50; // in coins
 var NUMBER_OF_REELS = 3;
@@ -21,7 +28,6 @@ var EXTRA_SIMBOLS 	= -175; // used to readjust reel positioning
 var REEL_PADDING 	= 50;
 var ACC = 0.2; // acceleration
 var COLOURS = ["rgba(205,0,0,1)","rgba(0,205,0,1)","rgba(0,0,205,1)"]; // colour reference for buttons
-
 /* enumeration for SYMBOL POSITIONS (freeze option prevent keys to be modified)*/
 var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING, 
 								COIN_JACKPOT:	-99 +REEL_PADDING, 
@@ -33,36 +39,51 @@ var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING,
 								ATOM_BLAST: 	-685+REEL_PADDING, 
 								EXTRA_SPINS: 	-786+REEL_PADDING, 
 								HEAD_START: 	-890+REEL_PADDING});
-
+// config canvas
 function init(){ 
 	// define canvas as stage
 	stage = new createjs.Stage("slotmachine");
-
+	// reels setup
 	initializeReels(reelsCanvas, NUMBER_OF_REELS);
 	// ticker setup
 	createjs.Ticker.setFPS(60);
 	createjs.Ticker.addEventListener("tick", tick);
-
-
     /* 
       	buttons setup 
 			0 : lever
 			1 : buy token
 			2 : cash in
     */
-    for(var i=0 ; i<3 ; i++){
-    	buttons.push(new createjs.Shape());
-    	buttons[i].graphics.beginRadialGradientFill(["rgba(255,255,255,1)", COLOURS[i]], [0, 1], -18, -18, 0, 0, 0, 35).drawCircle(10, 10, 25);
-	    buttons[i].x = 4*70;
-	    buttons[i].y = (i+1)*40;
-    	//Add Shape instance to stage display list.
-    	stage.addChild(buttons[i]);
-    }
+    	redLever =  new createjs.Shape();
+    	// buttons.push(new createjs.Shape());
+    	redLever.graphics.beginRadialGradientFill(["rgba(255,255,255,1)", "rgba(180,0,0,1)"], [0, 1], -8, -10, 0, 0, 0, 25).drawCircle(10, 10, 20);
+	    redLever.x = 290;
+	    redLever.y = 30;
+    	// //Add Shape instance to stage display list.
+    	stage.addChild(redLever);
+
+    btBuyToken = new createjs.Text();
+    btCashIn = new createjs.Text();
+    msgDisplayMessage = new createjs.Text();
+    msgCoinAmount = new createjs.Text();
+    msgTokenAmount = new createjs.Text();
+
+    configText(btBuyToken, '26px Squada One', 'yellow', "BUY TOKEN", 20, 180, true);
+    configText(btCashIn, '26px Squada One', 'yellow', "CASH IN", 200, 180, true);
+    configText(msgDisplayMessage, '46px Squada One', 'red', "", 40, 210, true);
+    configText(msgCoinAmount, '26px Squada One', 'white', "", 20, 270, true);
+    configText(msgTokenAmount, '26px Squada One', 'white',"", 175, 270, true);
+
+    //mask for display
+	var displayMask = new createjs.Shape();
+	displayMask.graphics.beginStroke('green').setStrokeStyle(3).rect(-1, 210, 294, 50);
+	msgDisplayMessage.mask = displayMask;
+	stage.addChild(displayMask);
 
     // add event listener for the buttons
-    buttons[0].addEventListener("click", pullTheLever);
-    buttons[1].addEventListener("click", buyToken);
-    buttons[2].addEventListener("click", cashIn);
+    redLever.addEventListener("click", pullTheLever);
+    btBuyToken.addEventListener("click", buyToken);
+    btCashIn.addEventListener("click", cashIn);
 
 	loadBiMap(map, POSITION);
 	console.log("Waiting for player moves...");
@@ -79,9 +100,12 @@ function tick(event){
 }
 /* update DOM content */
 function updateTextOnScreen(){
-	$("#display").text(displayMessage);
-	$("h2#coins strong").text(coins);
-	$("h2#tokens strong").text(tokens);
+	if(msgDisplayMessage.x < -300){
+		msgDisplayMessage.x = 300;
+	}
+	msgDisplayMessage.x -= 2;
+	msgCoinAmount.text = "COINS: " + coins;
+	msgTokenAmount.text = "TOKENS: " + tokens;
 }
 
 /* spin given reel:
@@ -150,6 +174,7 @@ function reelsStopped(){
 function colectToken(){
 	if(tokens>0){
 		tokens--;
+
 		console.log("token colected. The player has " + coins + " Coins and " + tokens + " Tokens.");
 		return true;
 	}else if(coins > TOKEN_VALUE){
@@ -201,6 +226,7 @@ function checkReels(){
 		displayMessage = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
 		console.log("Player lost.");
 	}
+	msgDisplayMessage.text = displayMessage;
 }
 
 /* Calculate prize acording to symbol combination */
@@ -257,17 +283,19 @@ function headStartPrize(){
 function initializeReels(reelsArray, numberOfReels){
 
 	var xOffset = 85;
+	var margin = 20
 	for (var i = 0; i <numberOfReels; i++){
+		var xPosition = (i*xOffset+1) + margin;
 		reelsArray.push(new createjs.Bitmap("assets/img/reelz.jpeg"));
 		reelsArray[i].relativeDistance = 0; // reference for reel next position
-		reelsArray[i].x = i*xOffset+1; // space based on img width
+		reelsArray[i].x = xPosition; // space based on img width
 		reelsArray[i].speed = 0.5; //start speed
 		reelsArray[i].nextStop = POSITION.COIN_BONUS;
 		reelsArray[i].spinning = false;
 
 		//mask for reels
 		var rectMask = new createjs.Shape();
-		rectMask.graphics.beginStroke('grey') .setStrokeStyle(3).rect(xOffset*i+1, 0, 80, 170);
+		rectMask.graphics.beginStroke('grey').setStrokeStyle(3).rect(xPosition, margin, 80, 150);
 		// set mask to reel
 		reelsArray[i].mask =rectMask;
 		//stage the elements
@@ -321,4 +349,18 @@ function betline(){
 	}
 	return reelSet;
 }
+
+/* auxiliar function for text set up */
+function configText(variable, font, color, text, x, y, shadow){
+	variable.font = font;
+	variable.color = color;
+	variable.text = text;
+	if(shadow){
+		variable.shadow = new createjs.Shadow("grey", 2, 5, 7);
+	}
+	variable.x = x;
+	variable.y = y;
+	stage.addChild(variable);
+}
+
 
