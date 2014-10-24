@@ -63,6 +63,14 @@ function tick(event){
 		spinReel(reels[i]);
 	}
 	stage.update();
+	updateTextOnScreen();
+}
+/* update DOM content */
+function updateTextOnScreen(){
+	$("h2#coins strong").text(coins);
+	$("h2#tokens strong").text(tokens);
+	$("h1#betline").text(actualReels);
+	$("#display").text(displayMessage);
 }
 
 /* spin given reel:
