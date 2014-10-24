@@ -1,16 +1,26 @@
 /* global variables */
 var stage;
 var map = new BiMap;
+// Player belongings
 var coins = 1000;
-var tokens = 0;
-var actualReels;
+var tokens = 1;
+
+var actualReels = ["z","j","z"]; // actual raffled reels // placeholder
+var lastReels	= ["z","j","z"]; // last raffled reels // used for flow control
+var reelsCanvas	= []; // set of objects representing the reels on Canvas
+var buttons 	= [];
+
 var lastPrize = "";
 var displayMessage = "PULL THE LEVER";
+
+
 /* constants */
-var TOKEN_VALUE = 50;
+var TOKEN_VALUE 	= 50; // in coins
 var NUMBER_OF_REELS = 3;
-var EXTRA_SIMBOLS = -175;
-var REEL_PADDING = 50;
+var EXTRA_SIMBOLS 	= -175; // used to readjust reel positioning
+var REEL_PADDING 	= 50;
+var ACC = 0.2; // acceleration
+var COLOURS = ["rgba(205,0,0,1)","rgba(0,205,0,1)","rgba(0,0,205,1)"]; // colour reference for buttons
 
 /* enumeration for SYMBOL POSITIONS (freeze option prevent keys to be modified)*/
 var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING, 
@@ -24,33 +34,35 @@ var POSITION = Object.freeze({	COIN_BONUS:     -970+REEL_PADDING,
 								EXTRA_SPINS: 	-786+REEL_PADDING, 
 								HEAD_START: 	-890+REEL_PADDING});
 
-// acceleration references for the reels
-var acc = 0.2;
-// speed ref for the reels (number of pixels)
-var reels = [];
-var masks = []
-var circle;
 function init(){ 
 	// define canvas as stage
-	stage  = new createjs.Stage("slotmachine");
+	stage = new createjs.Stage("slotmachine");
 
-	initializeReels(reels, NUMBER_OF_REELS);
-
+	initializeReels(reelsCanvas, NUMBER_OF_REELS);
+	// ticker setup
 	createjs.Ticker.setFPS(60);
 	createjs.Ticker.addEventListener("tick", tick);
 
 
-    //Create a Shape
-    circle = new createjs.Shape();
-    circle.graphics.beginRadialGradientFill(["rgba(255,255,255,1)", "rgba(205,0,0,1)"], [0, 1], -18, -18, 0, 0, 0, 35).drawCircle(10, 10, 25);
-    //circle.graphics.beginFill("red").drawCircle(0, 0, 20);
-    //Set position of Shape instance.
-    circle.x = 4*70;
-    circle.y = 40;
-    //Add Shape instance to stage display list.
-    stage.addChild(circle);
+    /* 
+      	buttons setup 
+			0 : lever
+			1 : buy token
+			2 : cash in
+    */
+    for(var i=0 ; i<3 ; i++){
+    	buttons.push(new createjs.Shape());
+    	buttons[i].graphics.beginRadialGradientFill(["rgba(255,255,255,1)", COLOURS[i]], [0, 1], -18, -18, 0, 0, 0, 35).drawCircle(10, 10, 25);
+	    buttons[i].x = 4*70;
+	    buttons[i].y = (i+1)*40;
+    	//Add Shape instance to stage display list.
+    	stage.addChild(buttons[i]);
+    }
 
-    circle.addEventListener("click", setNextStop);
+    // add event listener for the buttons
+    buttons[0].addEventListener("click", pullTheLever);
+    buttons[1].addEventListener("click", buyToken);
+    buttons[2].addEventListener("click", cashIn);
 
 	loadBiMap(map, POSITION);
 	console.log("Waiting for player moves...");
@@ -59,18 +71,17 @@ function init(){
 // main loop
 function tick(event){
 	// iterate over reel colection calling spinReel
-	for(var i = 0; i < reels.length; i++){
-		spinReel(reels[i]);
+	for(var i = 0; i < reelsCanvas.length; i++){
+		spinReel(reelsCanvas[i]);
 	}
 	stage.update();
 	updateTextOnScreen();
 }
 /* update DOM content */
 function updateTextOnScreen(){
+	$("#display").text(displayMessage);
 	$("h2#coins strong").text(coins);
 	$("h2#tokens strong").text(tokens);
-	$("h1#betline").text(actualReels);
-	$("#display").text(displayMessage);
 }
 
 /* spin given reel:
@@ -86,20 +97,24 @@ function spinReel(reel){
 		if(reel.relativeDistance <= 500){
 			reel.speed -= 0.2;
 		}else if( reel.speed < 15){
-			reel.speed+= acc;
+			reel.speed+= ACC;
 		} 
 		// update reel position
 		reel.y += reel.speed;
 		// update reel relativeDistance
 		reel.relativeDistance -= reel.speed;
 		// log
-		console.log(" y position 		: "+ reel.y);
-		console.log(" speed 			: "+ reel.speed);
-		console.log("relativeDistance 	: "+ reel.relativeDistance); 
+		//console.log(" y position 		: "+ reel.y);
+		//console.log(" speed 			: "+ reel.speed);
+		//console.log("relativeDistance 	: "+ reel.relativeDistance); 
 	}else{
 		reel.y = reel.nextStop; //correct reel position
 		reel.relativeDistance = 0; // reset property;
 		reel.spinning = false; // end of spinning
+		if(lastReels != actualReels && reel === reelsCanvas[2]){
+			checkReels(); // check combination
+			lastReels = actualReels;
+		}
 	}
 }
 
@@ -108,26 +123,134 @@ function completeTurn(num){
 	return (970)*num;
 }
 
-function setNextStop(){
+function pullTheLever(){
 		if(reelsStopped()){
-			var betLine = betline();
-			console.log(betLine);
-			for(var i = 0; i < reels.length; i++){
-					// set next stop
-					reels[i].nextStop = betLine[i];
-					// calculate relativeDistance according to reel sequence, atualPosition and nextStop
-					reels[i].relativeDistance = completeTurn(i+2) + reels[i].nextStop - reels[i].y;
-					console.log("next stop " + i + ": " + reels[i].nextStop + ", relative dist.: " + reels[i].relativeDistance);
+			if(colectToken()){
+				actualReels = betline();
+				console.log(actualReels);
+				for(var i = 0; i < reelsCanvas.length; i++){
+						// set next stop
+						reelsCanvas[i].nextStop = actualReels[i];
+						// calculate relativeDistance according to reel sequence, atualPosition and nextStop
+						reelsCanvas[i].relativeDistance = completeTurn(i+2) + reelsCanvas[i].nextStop - reelsCanvas[i].y;
+						console.log("next stop " + i + ": " + reelsCanvas[i].nextStop + ", relative dist.: " + reelsCanvas[i].relativeDistance);
+				}
+				console.log("Next stops set.");
 			}
-			console.log("Next stops set.");
 		}
 }
 
-// check if all reels are stopped
+/* check if all reels are stopped */
 function reelsStopped(){
-	var stopped = (!reels[0].spinning && !reels[1].spinning && !reels[2].spinning) ? true : false;
+	var stopped = (!reelsCanvas[0].spinning && !reelsCanvas[1].spinning && !reelsCanvas[2].spinning) ? true : false;
 	console.log("reels stopped : " + stopped);
 	return stopped;
+}
+/* Check if player have enough tokens and colect one */
+function colectToken(){
+	if(tokens>0){
+		tokens--;
+		console.log("token colected. The player has " + coins + " Coins and " + tokens + " Tokens.");
+		return true;
+	}else if(coins > TOKEN_VALUE){
+		alert("You dont have any tokens, but you can buy some.")
+		console.log("Player tried to pull the lever without insert any tokens. Alert message was shown.");
+	}else{
+		cantPlay();
+	}
+}
+/* token purchase */
+function buyToken(){
+	if(coins >= TOKEN_VALUE){
+		coins -= TOKEN_VALUE;
+		tokens++;
+		console.log("Token bought. The player has " + tokens + " tokens");
+	}
+	else if(tokens > 0){
+		alert("You don't have enough money, but you still have tokens.");
+		console.log("Player doesn't have money, but still have tokens.");
+	}else{
+		cantPlay();
+	}
+}
+/* return 90% of token value if player wants to cash the token in */
+function cashIn(){
+	if(tokens>0){
+		tokens--;
+		coins += (TOKEN_VALUE*0.9);
+		console.log("token cashed in. The player have " + coins + " coins and " + tokens + " tokens.")
+	}else{
+		alert("You don't have tokens to be cashed in.");
+		console.log("Player tried to cashe a token in, but he doesn't have any. Alert message was shown.");
+	}
+}
+/* auxiliar function used when player have no more options to play */
+function cantPlay(){
+	if(confirm("You have neighter money nor tokens.\nWould you like to play again?")){
+		window.location.reload(true);
+		console.log("Game restarted");
+	}
+}
+/* Check if the three reels have stopped at the same symbol */
+function checkReels(){
+	if(actualReels[0] == actualReels[1] || actualReels[1] == actualReels[2]){
+		calculatePrize(actualReels[0]);
+		displayMessage = "YOU WON " + lastPrize +".";
+		console.log("Player won "+ lastPrize + " with " + actualReels[0] + " combination.");
+	}else{
+		displayMessage = (coins < TOKEN_VALUE && tokens <= 0) ? "GAME OVER" : "TRY AGAIN";
+		console.log("Player lost.");
+	}
+}
+
+/* Calculate prize acording to symbol combination */
+function calculatePrize(symbol){
+	var prize = 0;
+	switch(symbol){
+		case POSITION.COIN_JACKPOT:
+			prize = 1000;
+			lastPrize = "$$$ THE JACKPOT $$$"
+			break;
+		case POSITION.COIN_PRIZE:
+			prize = 500;
+			break;
+		case POSITION.ATOM_BLAST:
+			prize = 385;
+			break;
+		case POSITION.BIG_BLAST:
+			prize = 260;
+			break;
+		case POSITION.SMALL_BLAST:
+			prize = 160;
+			break;
+		case POSITION.COIN_BONUS:
+			prize = 100;
+			break;
+		case POSITION.DOUBLE_COINS:
+			lastPrize = "ANOTHER " + coins + " COINS"
+			coins += coins;
+			break;
+		case POSITION.HEAD_START:
+			prize = headStartPrize();
+			break;
+		case POSITION.EXTRA_SPINS:
+			tokens += 3;
+			lastPrize = "3 TOKENS"
+			break;
+		case POSITION.DOUBLE_TOKENS:
+			lastPrize = "ANOTHER "+ tokens +" TOKENS"
+			tokens += tokens;
+			break;
+	}
+	// compose lastPrize message for coins prize
+	if(prize >0 && prize != 1000){
+		lastPrize = prize + " COINS";
+	}
+	coins += prize;
+}
+/* generate a random number between 50 and 150 for the HEAD_START prize */
+function headStartPrize(){
+	return Math.floor(Math.random() * 100 + 50);
 }
 
 // fill up the array with the reels and set up variables
@@ -144,16 +267,14 @@ function initializeReels(reelsArray, numberOfReels){
 
 		//mask for reels
 		var rectMask = new createjs.Shape();
-		rectMask.graphics.beginStroke('#fe0') .setStrokeStyle(2).rect(xOffset*i+1, 0, 80, 170);
-		// add mask to array, set mask to reel and stage mask
-		masks.push(rectMask);
+		rectMask.graphics.beginStroke('grey') .setStrokeStyle(3).rect(xOffset*i+1, 0, 80, 170);
+		// set mask to reel
 		reelsArray[i].mask =rectMask;
 		//stage the elements
 		stage.addChild(reelsArray[i]);
 		stage.addChild(rectMask);
 	}
 }
-
 
 /* auxiliar function to initialize bimap distributing weighted values for each key.
  * first key element of the list has always less associated values than the later ones.
@@ -188,7 +309,7 @@ function mapValuesToKey(map, key, start, end){
 ////// BETLINE
 
 /* return a valid reel position */
-function spin(){
+function reelPosition(){
 	var virtualReel = Math.floor(Math.random() * 90); // generate number up to 90
 	return map.val(virtualReel); // return the key given the value 
 }
@@ -196,7 +317,7 @@ function spin(){
 function betline(){
 	var reelSet = [];
 	for(i = 0; i < 3; i++){
-		reelSet.push(spin());
+		reelSet.push(reelPosition());
 	}
 	return reelSet;
 }
