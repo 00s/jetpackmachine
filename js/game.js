@@ -251,7 +251,7 @@ function cantPlay(){
 }
 /* Check if the three reels have stopped at the same symbol */
 function checkReels(){
-	if(actualReels[0] == actualReels[1] || actualReels[1] == actualReels[2]){
+	if(actualReels[0] == actualReels[1] && actualReels[1] == actualReels[2]){
 		calculatePrize(actualReels[0]);
 		displayMessage = "YOU WON " + lastPrize +".";
 		console.log("Player won "+ lastPrize + " with " + actualReels[0] + " combination.");
