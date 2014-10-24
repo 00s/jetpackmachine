@@ -14,6 +14,8 @@ var btBuyToken;
 var btCashIn;
 // LEVER
 var lever;
+// lever ref
+var leverPushed = false;
 // messages
 var msgDisplayMessage;
 var msgCoinAmount;
@@ -48,19 +50,14 @@ function init(){
 	// ticker setup
 	createjs.Ticker.setFPS(60);
 	createjs.Ticker.addEventListener("tick", tick);
-    /* 
-      	buttons setup 
-			0 : lever
-			1 : buy token
-			2 : cash in
-    */
-    	redLever =  new createjs.Shape();
-    	// buttons.push(new createjs.Shape());
-    	redLever.graphics.beginRadialGradientFill(["rgba(255,255,255,1)", "rgba(180,0,0,1)"], [0, 1], -8, -10, 0, 0, 0, 25).drawCircle(10, 10, 20);
-	    redLever.x = 290;
-	    redLever.y = 30;
-    	// //Add Shape instance to stage display list.
-    	stage.addChild(redLever);
+    /* lever setup */
+	redLever =  new createjs.Shape();
+	// buttons.push(new createjs.Shape());
+	redLever.graphics.beginRadialGradientFill(["rgba(255,255,255,1)", "rgba(180,0,0,1)"], [0, 1], -8, -10, 0, 0, 0, 25).drawCircle(10, 10, 20);
+    redLever.x = 290;
+    redLever.y = 30;
+	// //Add Shape instance to stage display list.
+	stage.addChild(redLever);
 
     btBuyToken = new createjs.Text();
     btCashIn = new createjs.Text();
@@ -80,13 +77,45 @@ function init(){
 	msgDisplayMessage.mask = displayMask;
 	stage.addChild(displayMask);
 
-    // add event listener for the buttons
-    redLever.addEventListener("click", pullTheLever);
+    // add event listeners for the buttons
+    //redLever.addEventListener("click", pullTheLever);
     btBuyToken.addEventListener("click", buyToken);
     btCashIn.addEventListener("click", cashIn);
+    btBuyToken.addEventListener("mouseover", over);
+    btBuyToken.addEventListener("mouseout", out);
+    btCashIn.addEventListener("mouseover", over);
+    btCashIn.addEventListener("mouseout", out);
+    // enable mouse over
+    stage.enableMouseOver(10);
+	// lets drag continue to track the mouse when it leaves the canvas:
+	stage.mouseMoveOutside = true; 
+
+    redLever.on("pressmove", function(event){
+    	// currentTarget will be the container that the event listener was added to:
+    	if(event.stageY < 100){
+			event.currentTarget.y = event.stageY;
+    	}
+		// make sure to redraw the stage to show the change:
+		stage.update();   
+    });
+    redLever.on("pressup", function(event) { 
+    	if(redLever.y > 30){
+    		leverPushed = true;
+    	}
+    	if(redLever.y > 50){
+    		pullTheLever();
+    	}
+    	console.log("Lever released"); 
+    });
 
 	loadBiMap(map, POSITION);
 	console.log("Waiting for player moves...");
+}
+function over(event){
+	event.target.color = 'red';
+}
+function out(event){
+	event.target.color = 'yellow';
 }
 
 // main loop
@@ -96,16 +125,21 @@ function tick(event){
 		spinReel(reelsCanvas[i]);
 	}
 	stage.update();
-	updateTextOnScreen();
+	updateContent();
 }
 /* update DOM content */
-function updateTextOnScreen(){
-	if(msgDisplayMessage.x < -300){
-		msgDisplayMessage.x = 300;
+function updateContent(){
+	if(msgDisplayMessage.x < -(msgDisplayMessage.getMeasuredWidth())){
+		msgDisplayMessage.x = 295;
 	}
 	msgDisplayMessage.x -= 2;
 	msgCoinAmount.text = "COINS: " + coins;
 	msgTokenAmount.text = "TOKENS: " + tokens;
+	if(redLever.y > 30 && leverPushed){
+		redLever.y -=5;
+	}else{
+		leverPushed = false;
+	}
 }
 
 /* spin given reel:
@@ -174,7 +208,6 @@ function reelsStopped(){
 function colectToken(){
 	if(tokens>0){
 		tokens--;
-
 		console.log("token colected. The player has " + coins + " Coins and " + tokens + " Tokens.");
 		return true;
 	}else if(coins > TOKEN_VALUE){
@@ -362,5 +395,3 @@ function configText(variable, font, color, text, x, y, shadow){
 	variable.y = y;
 	stage.addChild(variable);
 }
-
-
