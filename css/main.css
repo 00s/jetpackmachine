@@ -1,11 +1,10 @@
 body{
-	background: black;
 	font-family: 'Squada One', cursive;
 	color: white;
 }
 #main{
 	text-align: center;
 	background: #002;
-	width: 320px;
+	width: 292px;
 	margin: 0 auto;
 }
